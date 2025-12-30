@@ -199,22 +199,39 @@
             const instances = [];
             let dragControl = null;
 
-            // Generate initial shape
-            setStatus('Generating initial geometry...');
-            const initialModel = shapeGenerators[params.shape]();
-            geometryCache[params.shape] = simulation.addGeometry(initialModel);
+            // Generate initial geometries
+            setStatus('Generating initial geometries...');
+            const initialShapes = ['tube', 'box', 'sphere', 'cylinder'];
+            const shapeColors = {
+                tube: 0x4488ff,
+                box: 0xff8844,
+                sphere: 0x44ff88,
+                cylinder: 0xff44aa
+            };
+            const shapeCounts = {
+                tube: 100,
+                box: 5,
+                sphere: 5,
+                cylinder: 5
+            };
 
-            // Configure material
-            const geom = geometryCache[params.shape];
-            geom.material.color = new THREE.Color(0x4488ff);
-            geom.material.roughness = 0.3;
-            geom.material.metalness = 0.1;
+            for (const shape of initialShapes) {
+                const model = shapeGenerators[shape]();
+                geometryCache[shape] = simulation.addGeometry(model);
+                geometryCache[shape].material.color = new THREE.Color(shapeColors[shape]);
+                geometryCache[shape].material.roughness = 0.3;
+                geometryCache[shape].material.metalness = 0.1;
+            }
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 100; i++) {
-                const instance = simulation.addInstance(geom);
-                instances.push({ instance, shape: params.shape });
+            for (const shape of initialShapes) {
+                const geom = geometryCache[shape];
+                const count = shapeCounts[shape];
+                for (let i = 0; i < count; i++) {
+                    const instance = simulation.addInstance(geom);
+                    instances.push({ instance, shape });
+                }
             }
 
             // Add simulation object to scene
