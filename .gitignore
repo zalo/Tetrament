@@ -57,6 +57,8 @@ test/test_runner
 .vscode
 .cache
 .fiveserverrc
+.claude
+.claude/**/*
 
 # Dependency directories
 node_modules/**/*

@@ -81,7 +81,7 @@
             TetVisualizer,
             DynamicTetVisualizer,
             StrainVisualizer
-        } from '../../lib/index.js';
+        } from '../../dist/tetrament.js';//'../../lib/index.js';
 
         const setStatus = (text) => {
             document.getElementById('loading-status').textContent = text;
@@ -212,7 +212,7 @@
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 200; i++) {
+            for (let i = 0; i < 10; i++) {
                 const instance = simulation.addInstance(geom);
                 instances.push({ instance, shape: params.shape });
             }
@@ -238,7 +238,7 @@
             // Create drag control
             dragControl = new DragControl(simulation, camera, renderer.domElement, {
                 strength: 0.3,
-                maxDistance: 0.5,
+                maxDistance: 0.1,
                 button: 'right',
                 scene: scene,
                 orbitControls: controls
