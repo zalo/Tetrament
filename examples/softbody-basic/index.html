@@ -46,7 +46,7 @@
     <div id="container"></div>
     <div id="info">
         <h1>Softbody Simulation</h1>
-        <p><strong>Controls:</strong> LMB: Rotate | RMB: Drag softbody | Scroll: Zoom | T: Toggle tets</p>
+        <p><strong>Controls:</strong> LMB: Rotate | RMB: Drag softbody | Scroll: Zoom | S: Strain | T: Tets</p>
         <p><strong>Note:</strong> Requires WebGPU (Chrome 113+)</p>
     </div>
     <script type="importmap">
@@ -78,7 +78,9 @@
             PlaneCollider,
             SphereCollider,
             DragControl,
-            TetVisualizer
+            TetVisualizer,
+            DynamicTetVisualizer,
+            StrainVisualizer
         } from '../../lib/index.js';
 
         const setStatus = (text) => {
@@ -172,11 +174,6 @@
                 spawnHeight: 3,
                 numToSpawn: 1,
 
-                // Debug
-                showTets: false,
-                tetScale: 0.9,
-                colorByQuality: true,
-
                 // Actions
                 spawn: () => spawnShape(),
                 clearAll: () => clearAllBodies(),
@@ -200,8 +197,6 @@
             // Track geometries and instances
             const geometryCache = {};
             const instances = [];
-            let tetDebugGroup = null;
-            let tetVisualizer = null;
             let dragControl = null;
 
             // Generate initial shape
@@ -240,34 +235,6 @@
                 );
             }
 
-            // Create tetrahedra debug visualizer
-            function updateTetVisualizer() {
-                if (tetDebugGroup) {
-                    scene.remove(tetDebugGroup);
-                    if (tetVisualizer) tetVisualizer.dispose();
-                }
-
-                const model = shapeGenerators[params.shape]();
-                tetVisualizer = new TetVisualizer({
-                    wireframeColor: new THREE.Color(0x00ff00),
-                    faceColor: new THREE.Color(0x0088ff),
-                    opacity: 0.4,
-                    scale: params.tetScale
-                });
-                tetDebugGroup = tetVisualizer.createVisualization(
-                    model.tetVerts,
-                    model.tetIds,
-                    { showWireframe: true, showFaces: true, colorByQuality: params.colorByQuality }
-                );
-                tetDebugGroup.visible = params.showTets;
-                scene.add(tetDebugGroup);
-
-                // Log stats
-                const stats = TetVisualizer.getStatistics(model.tetVerts, model.tetIds);
-                console.log(`[${params.shape}] Tets: ${stats.tetCount}, Verts: ${stats.vertexCount}, Quality: ${stats.avgQuality.toFixed(3)}`);
-            }
-            updateTetVisualizer();
-
             // Create drag control
             dragControl = new DragControl(simulation, camera, renderer.domElement, {
                 strength: 0.3,
@@ -275,6 +242,20 @@
                 button: 'right',
                 scene: scene,
                 orbitControls: controls
+            });
+
+            // Create strain visualizer
+            const strainVisualizer = new StrainVisualizer(simulation, {
+                maxStrain: 0.3,
+                compressionColor: new THREE.Color(0x0066ff),
+                neutralColor: new THREE.Color(0x00ff00),
+                tensionColor: new THREE.Color(0xff0000)
+            });
+
+            // Create dynamic tet visualizer
+            const tetVisualizer = new DynamicTetVisualizer(simulation, {
+                color: new THREE.Color(0x00ff00),
+                scale: 0.85
             });
 
             // Spawn function
@@ -309,6 +290,16 @@
                 // Rebake if we added a new geometry or new instances
                 if (needsRebake || newInstances.length > 0) {
                     await simulation.bake();
+
+                    // Reset visualizers to pick up new geometry/instances
+                    if (strainVisualizer.enabled) {
+                        strainVisualizer.disable();
+                        strainVisualizer.enable();
+                    }
+                    if (tetVisualizer.enabled) {
+                        tetVisualizer.disable();
+                        await tetVisualizer.enable();
+                    }
                 }
 
                 // Now spawn (set positions) for the new instances
@@ -397,29 +388,32 @@
             });
             simFolder.open();
 
+            // Debug folder
+            const debugFolder = gui.addFolder('Debug');
+            debugFolder.add({ showStrain: false }, 'showStrain').name('Show Strain').onChange(v => {
+                if (v) {
+                    strainVisualizer.enable();
+                } else {
+                    strainVisualizer.disable();
+                }
+            });
+            debugFolder.add({ showTets: false }, 'showTets').name('Show Tets').onChange(async v => {
+                if (v) {
+                    await tetVisualizer.enable();
+                } else {
+                    tetVisualizer.disable();
+                }
+            });
+            debugFolder.open();
+
             // Spawn folder
             const spawnFolder = gui.addFolder('Spawn');
-            spawnFolder.add(params, 'shape', Object.keys(shapeGenerators)).name('Shape').onChange(() => {
-                updateTetVisualizer();
-            });
+            spawnFolder.add(params, 'shape', Object.keys(shapeGenerators)).name('Shape');
             spawnFolder.add(params, 'spawnHeight', 1, 10, 0.5).name('Spawn Height');
             spawnFolder.add(params, 'numToSpawn', 1, 5, 1).name('Count');
             spawnFolder.add(params, 'spawn').name('Spawn Shape');
             spawnFolder.add(params, 'clearAll').name('Clear All');
             spawnFolder.open();
-
-            // Debug folder
-            const debugFolder = gui.addFolder('Debug');
-            debugFolder.add(params, 'showTets').name('Show Tetrahedra').onChange(v => {
-                tetDebugGroup.visible = v;
-                simulation.object.visible = !v;
-            });
-            debugFolder.add(params, 'tetScale', 0.5, 1.0, 0.05).name('Tet Scale').onChange(() => {
-                updateTetVisualizer();
-            });
-            debugFolder.add(params, 'colorByQuality').name('Color by Quality').onChange(() => {
-                updateTetVisualizer();
-            });
 
             // Hide loading screen
             document.getElementById('loading').classList.add('hidden');
@@ -433,15 +427,14 @@
 
             // Keyboard handler
             window.addEventListener('keydown', (event) => {
-                if (event.key === 't' || event.key === 'T') {
-                    params.showTets = !params.showTets;
-                    tetDebugGroup.visible = params.showTets;
-                    simulation.object.visible = !params.showTets;
-                    gui.controllersRecursive().find(c => c.property === 'showTets')?.updateDisplay();
-                    console.log('Tetrahedra debug view:', params.showTets ? 'ON' : 'OFF');
-                }
                 if (event.key === ' ') {
                     spawnShape();
+                }
+                if (event.key === 's' || event.key === 'S') {
+                    strainVisualizer.toggle();
+                }
+                if (event.key === 't' || event.key === 'T') {
+                    tetVisualizer.toggle();
                 }
             });
 
