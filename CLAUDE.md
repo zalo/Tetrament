@@ -59,5 +59,5 @@ Model → SoftbodyGeometry.addInstance() → SoftbodyInstance
 
 ### Dependencies
 
-- `three` (>=0.183.0) - WebGPU renderer and TSL
+- `three` (>=0.182.0) - WebGPU renderer and TSL
 - `three-mesh-bvh` - Accelerated raycasting for tetrahedralization inside/outside tests

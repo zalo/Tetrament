@@ -24,7 +24,7 @@ npm install tetrament three three-mesh-bvh
 
 ## Requirements
 
-- Three.js 0.183.0 or higher (with WebGPU support)
+- Three.js 0.182.0 or higher (with WebGPU support)
 - three-mesh-bvh 0.7.0 or higher
 - WebGPU-enabled browser (Chrome 113+, Edge 113+)
 
