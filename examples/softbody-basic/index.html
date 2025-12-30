@@ -10,15 +10,16 @@
         #container { width: 100vw; height: 100vh; }
         #info {
             position: absolute;
-            top: 10px;
+            bottom: 10px;
             left: 10px;
-            padding: 15px;
+            padding: 10px 15px;
             background: rgba(0,0,0,0.7);
             border-radius: 8px;
-            max-width: 320px;
+            max-width: 400px;
+            font-size: 12px;
         }
-        #info h1 { font-size: 16px; margin-bottom: 10px; color: #4af; }
-        #info p { font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+        #info h1 { font-size: 14px; margin-bottom: 8px; color: #4af; }
+        #info p { line-height: 1.4; margin-bottom: 4px; }
         #loading {
             position: fixed;
             top: 0;
@@ -27,25 +28,26 @@
             height: 100%;
             background: #0a0a1a;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-size: 24px;
             z-index: 1000;
         }
+        #loading-status { font-size: 14px; margin-top: 10px; color: #888; }
         .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    <div id="loading">Loading WebGPU...</div>
+    <div id="loading">
+        Loading WebGPU...
+        <div id="loading-status"></div>
+    </div>
     <div id="container"></div>
     <div id="info">
         <h1>Softbody Simulation</h1>
-        <p>This example demonstrates real-time softbody physics using WebGPU compute shaders.</p>
-        <p><strong>Controls:</strong></p>
-        <p>- Left click + drag: Rotate camera</p>
-        <p>- Right click: Push softbodies</p>
-        <p>- Scroll: Zoom</p>
-        <p><strong>Note:</strong> Requires WebGPU-enabled browser (Chrome 113+, Edge 113+)</p>
+        <p><strong>Controls:</strong> LMB: Rotate | RMB: Drag softbody | Scroll: Zoom | T: Toggle tets</p>
+        <p><strong>Note:</strong> Requires WebGPU (Chrome 113+)</p>
     </div>
     <script type="importmap">
     {
@@ -54,21 +56,33 @@
             "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
             "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.tsl.js",
             "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
-            "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js"
+            "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js",
+            "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.min.js"
         }
     }
     </script>
     <script type="module">
         import * as THREE from 'three/webgpu';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GUI } from 'lil-gui';
 
         // Import tetrament library
         import {
             SoftbodySimulation,
             generateTube,
+            generateSphere,
+            generateBox,
+            generateTorus,
+            generateTorusKnot,
+            generateCylinder,
             PlaneCollider,
-            DragControl
+            DragControl,
+            TetVisualizer
         } from '../../lib/index.js';
+
+        const setStatus = (text) => {
+            document.getElementById('loading-status').textContent = text;
+        };
 
         // Check WebGPU support
         if (!navigator.gpu) {
@@ -77,14 +91,26 @@
             throw new Error('WebGPU not supported');
         }
 
+        // Shape generator configurations
+        const shapeGenerators = {
+            tube: () => generateTube(15, { radius: 0.1 }),
+            sphere: () => generateSphere(0.25, { resolution: 6, widthSegments: 12, heightSegments: 8 }),
+            box: () => generateBox(0.3, 0.3, 0.3, { resolution: 4 }),
+            torus: () => generateTorus(0.2, 0.08, { resolution: 5, radialSegments: 12, tubularSegments: 24 }),
+            torusKnot: () => generateTorusKnot(0.15, 0.05, { resolution: 4, tubularSegments: 48, radialSegments: 6 }),
+            cylinder: () => generateCylinder(0.15, 0.15, 0.4, { resolution: 5 })
+        };
+
         async function init() {
+            setStatus('Initializing renderer...');
+
             // Scene setup
             const container = document.getElementById('container');
             const scene = new THREE.Scene();
             scene.background = new THREE.Color(0x0a0a1a);
 
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 2, 5);
+            camera.position.set(0, 2, 4);
 
             // WebGPU Renderer
             const renderer = new THREE.WebGPURenderer({ antialias: true });
@@ -101,6 +127,8 @@
                     'WebGPU not available. This demo requires WebGPU (Chrome 113+ with WebGPU enabled).';
                 throw new Error('WebGPU required');
             }
+
+            setStatus('Setting up scene...');
 
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
@@ -130,55 +158,265 @@
             grid.position.y = 0.01;
             scene.add(grid);
 
-            // Create softbody simulation
-            const simulation = new SoftbodySimulation(renderer, {
+            // Simulation parameters
+            const params = {
+                // Simulation
                 stepsPerSecond: 180,
-                gravity: new THREE.Vector3(0, -19.62, 0)
+                gravity: -19.62,
+                friction: 0.9,
+                damping: 0.999,
+
+                // Spawning
+                shape: 'tube',
+                spawnHeight: 3,
+                numToSpawn: 1,
+
+                // Debug
+                showTets: false,
+                tetScale: 0.9,
+                colorByQuality: true,
+
+                // Actions
+                spawn: () => spawnShape(),
+                clearAll: () => clearAllBodies(),
+                resetSimulation: () => resetSimulation()
+            };
+
+            setStatus('Creating physics simulation...');
+
+            // Create softbody simulation
+            let simulation = new SoftbodySimulation(renderer, {
+                stepsPerSecond: params.stepsPerSecond,
+                gravity: new THREE.Vector3(0, params.gravity, 0),
+                friction: params.friction,
+                damping: params.damping
             });
 
             // Add ground collider
             simulation.addCollider(PlaneCollider(new THREE.Vector3(0, 1, 0), 0));
 
-            // Generate tube models
-            const tubeModel = generateTube(15, { radius: 0.1 });
+            // Track geometries and instances
+            const geometryCache = {};
+            const instances = [];
+            let tetDebugGroup = null;
+            let tetVisualizer = null;
+            let dragControl = null;
 
-            // Add geometry to simulation
-            const tubeGeometry = simulation.addGeometry(tubeModel);
+            // Generate initial shape
+            setStatus('Generating initial geometry...');
+            const initialModel = shapeGenerators[params.shape]();
+            geometryCache[params.shape] = simulation.addGeometry(initialModel);
 
             // Configure material
-            tubeGeometry.material.color = new THREE.Color(0x4488ff);
-            tubeGeometry.material.roughness = 0.3;
-            tubeGeometry.material.metalness = 0.1;
+            const geom = geometryCache[params.shape];
+            geom.material.color = new THREE.Color(0x4488ff);
+            geom.material.roughness = 0.3;
+            geom.material.metalness = 0.1;
 
-            // Create instances
-            const instances = [];
-            const numInstances = 5;
-
-            for (let i = 0; i < numInstances; i++) {
-                const instance = simulation.addInstance(tubeGeometry);
-                instances.push(instance);
+            // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
+            setStatus('Creating initial instances...');
+            for (let i = 0; i < 3; i++) {
+                const instance = simulation.addInstance(geom);
+                instances.push({ instance, shape: params.shape });
             }
 
-            // Add to scene
+            // Add simulation object to scene
             scene.add(simulation.object);
 
-            // Bake simulation (compile GPU shaders)
+            // Bake simulation (compile shaders after instances are created)
+            setStatus('Compiling GPU shaders...');
             await simulation.bake();
 
-            // Spawn instances
-            for (let i = 0; i < numInstances; i++) {
-                const x = (i - numInstances / 2) * 0.5;
-                await instances[i].spawn(
-                    new THREE.Vector3(x, 3 + i * 0.5, 0),
+            // Spawn instances (set initial positions)
+            setStatus('Spawning initial instances...');
+            for (let i = 0; i < instances.length; i++) {
+                const x = (i - 1) * 1.5;
+                await instances[i].instance.spawn(
+                    new THREE.Vector3(x, params.spawnHeight + i * 1.0, 0),
                     new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
                     new THREE.Vector3(1, 1, 1)
                 );
             }
 
+            // Create tetrahedra debug visualizer
+            function updateTetVisualizer() {
+                if (tetDebugGroup) {
+                    scene.remove(tetDebugGroup);
+                    if (tetVisualizer) tetVisualizer.dispose();
+                }
+
+                const model = shapeGenerators[params.shape]();
+                tetVisualizer = new TetVisualizer({
+                    wireframeColor: new THREE.Color(0x00ff00),
+                    faceColor: new THREE.Color(0x0088ff),
+                    opacity: 0.4,
+                    scale: params.tetScale
+                });
+                tetDebugGroup = tetVisualizer.createVisualization(
+                    model.tetVerts,
+                    model.tetIds,
+                    { showWireframe: true, showFaces: true, colorByQuality: params.colorByQuality }
+                );
+                tetDebugGroup.visible = params.showTets;
+                scene.add(tetDebugGroup);
+
+                // Log stats
+                const stats = TetVisualizer.getStatistics(model.tetVerts, model.tetIds);
+                console.log(`[${params.shape}] Tets: ${stats.tetCount}, Verts: ${stats.vertexCount}, Quality: ${stats.avgQuality.toFixed(3)}`);
+            }
+            updateTetVisualizer();
+
             // Create drag control
-            const dragControl = new DragControl(simulation, camera, renderer.domElement, {
-                force: 0.5,
-                button: 'right'
+            dragControl = new DragControl(simulation, camera, renderer.domElement, {
+                strength: 0.3,
+                maxDistance: 0.5,
+                button: 'right',
+                scene: scene,
+                orbitControls: controls
+            });
+
+            // Spawn function
+            async function spawnShape() {
+                // Get or create geometry for shape
+                let needsRebake = false;
+                if (!geometryCache[params.shape]) {
+                    setStatus(`Generating ${params.shape}...`);
+                    const model = shapeGenerators[params.shape]();
+                    geometryCache[params.shape] = simulation.addGeometry(model);
+
+                    // Configure material
+                    const newGeom = geometryCache[params.shape];
+                    const hue = Math.random();
+                    newGeom.material.color = new THREE.Color().setHSL(hue, 0.7, 0.5);
+                    newGeom.material.roughness = 0.3;
+                    newGeom.material.metalness = 0.1;
+
+                    needsRebake = true;
+                }
+
+                const geom = geometryCache[params.shape];
+
+                // Create instances BEFORE rebake
+                const newInstances = [];
+                for (let i = 0; i < params.numToSpawn; i++) {
+                    const instance = simulation.addInstance(geom);
+                    instances.push({ instance, shape: params.shape });
+                    newInstances.push(instance);
+                }
+
+                // Rebake if we added a new geometry or new instances
+                if (needsRebake || newInstances.length > 0) {
+                    await simulation.bake();
+                }
+
+                // Now spawn (set positions) for the new instances
+                for (let i = 0; i < newInstances.length; i++) {
+                    const x = (Math.random() - 0.5) * 2;
+                    const z = (Math.random() - 0.5) * 2;
+                    const rotation = new THREE.Quaternion().setFromEuler(
+                        new THREE.Euler(
+                            Math.random() * Math.PI,
+                            Math.random() * Math.PI,
+                            Math.random() * Math.PI
+                        )
+                    );
+
+                    await newInstances[i].spawn(
+                        new THREE.Vector3(x, params.spawnHeight + i * 0.5, z),
+                        rotation,
+                        new THREE.Vector3(1, 1, 1)
+                    );
+                }
+
+                console.log(`Spawned ${params.numToSpawn} ${params.shape}(s). Total: ${instances.length}`);
+            }
+
+            // Clear all bodies
+            async function clearAllBodies() {
+                for (const { instance } of instances) {
+                    instance.spawned = false;
+                }
+                instances.length = 0;
+                console.log('Cleared all bodies');
+            }
+
+            // Reset simulation (recreate everything)
+            async function resetSimulation() {
+                // This would require recreating the simulation
+                // For now, just clear and respawn initial shapes
+                await clearAllBodies();
+
+                // Update simulation parameters
+                simulation.config.gravity.y = params.gravity;
+                simulation.config.friction = params.friction;
+                simulation.uniforms.gravity.value.y = params.gravity;
+                simulation.uniforms.friction.value = params.friction;
+
+                // Create initial instances
+                const geom = geometryCache[params.shape] || geometryCache['tube'];
+                const newInstances = [];
+                for (let i = 0; i < 3; i++) {
+                    const instance = simulation.addInstance(geom);
+                    instances.push({ instance, shape: params.shape });
+                    newInstances.push(instance);
+                }
+
+                // Rebake to ensure shader buffers are updated
+                await simulation.bake();
+
+                // Spawn instances (set positions)
+                for (let i = 0; i < newInstances.length; i++) {
+                    const x = (i - 1) * 1.5;
+                    await newInstances[i].spawn(
+                        new THREE.Vector3(x, params.spawnHeight + i * 1.0, 0),
+                        new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
+                        new THREE.Vector3(1, 1, 1)
+                    );
+                }
+
+                console.log('Simulation reset');
+            }
+
+            // Setup GUI
+            const gui = new GUI({ title: 'Softbody Simulation' });
+
+            // Simulation folder
+            const simFolder = gui.addFolder('Simulation');
+            simFolder.add(params, 'stepsPerSecond', 30, 1000, 10).name('Steps/Second').onChange(v => {
+                simulation.config.stepsPerSecond = v;
+            });
+            simFolder.add(params, 'gravity', -50, 0, 0.1).name('Gravity').onChange(v => {
+                simulation.config.gravity.y = v;
+                simulation.uniforms.gravity.value.y = v;
+            });
+            simFolder.add(params, 'friction', 0, 1, 0.01).name('Friction').onChange(v => {
+                simulation.config.friction = v;
+                simulation.uniforms.friction.value = v;
+            });
+            simFolder.open();
+
+            // Spawn folder
+            const spawnFolder = gui.addFolder('Spawn');
+            spawnFolder.add(params, 'shape', Object.keys(shapeGenerators)).name('Shape').onChange(() => {
+                updateTetVisualizer();
+            });
+            spawnFolder.add(params, 'spawnHeight', 1, 10, 0.5).name('Spawn Height');
+            spawnFolder.add(params, 'numToSpawn', 1, 5, 1).name('Count');
+            spawnFolder.add(params, 'spawn').name('Spawn Shape');
+            spawnFolder.add(params, 'clearAll').name('Clear All');
+            spawnFolder.open();
+
+            // Debug folder
+            const debugFolder = gui.addFolder('Debug');
+            debugFolder.add(params, 'showTets').name('Show Tetrahedra').onChange(v => {
+                tetDebugGroup.visible = v;
+                simulation.object.visible = !v;
+            });
+            debugFolder.add(params, 'tetScale', 0.5, 1.0, 0.05).name('Tet Scale').onChange(() => {
+                updateTetVisualizer();
+            });
+            debugFolder.add(params, 'colorByQuality').name('Color by Quality').onChange(() => {
+                updateTetVisualizer();
             });
 
             // Hide loading screen
@@ -189,6 +427,20 @@
                 camera.aspect = window.innerWidth / window.innerHeight;
                 camera.updateProjectionMatrix();
                 renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Keyboard handler
+            window.addEventListener('keydown', (event) => {
+                if (event.key === 't' || event.key === 'T') {
+                    params.showTets = !params.showTets;
+                    tetDebugGroup.visible = params.showTets;
+                    simulation.object.visible = !params.showTets;
+                    gui.controllersRecursive().find(c => c.property === 'showTets')?.updateDisplay();
+                    console.log('Tetrahedra debug view:', params.showTets ? 'ON' : 'OFF');
+                }
+                if (event.key === ' ') {
+                    spawnShape();
+                }
             });
 
             // Animation loop
@@ -210,7 +462,12 @@
             animate();
         }
 
-        init().catch(console.error);
+        init().catch((err) => {
+            console.error(err);
+            document.getElementById('loading').innerHTML =
+                `<div style="color: red;">Error: ${err.message}</div>
+                 <div style="font-size: 14px; margin-top: 10px;">Check console for details</div>`;
+        });
     </script>
 </body>
 </html>
