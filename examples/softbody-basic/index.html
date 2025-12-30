@@ -70,12 +70,13 @@
         import {
             SoftbodySimulation,
             generateTube,
-            generateSphere,
+            generateIcosphere,
             generateBox,
             generateTorus,
             generateTorusKnot,
             generateCylinder,
             PlaneCollider,
+            SphereCollider,
             DragControl,
             TetVisualizer
         } from '../../lib/index.js';
@@ -94,11 +95,11 @@
         // Shape generator configurations
         const shapeGenerators = {
             tube: () => generateTube(15, { radius: 0.1 }),
-            sphere: () => generateSphere(0.25, { resolution: 6, widthSegments: 12, heightSegments: 8 }),
-            box: () => generateBox(0.3, 0.3, 0.3, { resolution: 4 }),
-            torus: () => generateTorus(0.2, 0.08, { resolution: 5, radialSegments: 12, tubularSegments: 24 }),
-            torusKnot: () => generateTorusKnot(0.15, 0.05, { resolution: 4, tubularSegments: 48, radialSegments: 6 }),
-            cylinder: () => generateCylinder(0.15, 0.15, 0.4, { resolution: 5 })
+            sphere: () => generateIcosphere(0.5, { resolution: 6, detail: 2 }),
+            box: () => generateBox(1.0, 1.0, 1.0, { resolution: 4 }),
+            torus: () => generateTorus(0.5, 0.08, { resolution: 5, radialSegments: 12, tubularSegments: 24 }),
+            torusKnot: () => generateTorusKnot(0.5, 0.15, { resolution: 4, tubularSegments: 48, radialSegments: 6 }),
+            cylinder: () => generateCylinder(0.5, 0.5, 1.0, { resolution: 5 })
         };
 
         async function init() {
@@ -194,6 +195,7 @@
 
             // Add ground collider
             simulation.addCollider(PlaneCollider(new THREE.Vector3(0, 1, 0), 0));
+            simulation.addCollider(SphereCollider(new THREE.Vector3(0, 1, 0), 5, true));
 
             // Track geometries and instances
             const geometryCache = {};
@@ -215,7 +217,7 @@
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 3; i++) {
+            for (let i = 0; i < 500; i++) {
                 const instance = simulation.addInstance(geom);
                 instances.push({ instance, shape: params.shape });
             }
@@ -230,10 +232,10 @@
             // Spawn instances (set initial positions)
             setStatus('Spawning initial instances...');
             for (let i = 0; i < instances.length; i++) {
-                const x = (i - 1) * 1.5;
+                const x = (i - 1) * 0.00015;
                 await instances[i].instance.spawn(
-                    new THREE.Vector3(x, params.spawnHeight + i * 1.0, 0),
-                    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
+                    new THREE.Vector3(x, params.spawnHeight + i * 0.1, 0),
+                    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.random() * Math.PI * 2, Math.PI / 2)),
                     new THREE.Vector3(1, 1, 1)
                 );
             }
@@ -382,7 +384,7 @@
 
             // Simulation folder
             const simFolder = gui.addFolder('Simulation');
-            simFolder.add(params, 'stepsPerSecond', 30, 1000, 10).name('Steps/Second').onChange(v => {
+            simFolder.add(params, 'stepsPerSecond', 60, 1000, 10).name('Steps/Second').onChange(v => {
                 simulation.config.stepsPerSecond = v;
             });
             simFolder.add(params, 'gravity', -50, 0, 0.1).name('Gravity').onChange(v => {
