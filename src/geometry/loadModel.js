@@ -1,6 +1,6 @@
 import * as THREE from "three/webgpu";
 import * as BufferGeometryUtils from 'three/examples/jsm/utils/BufferGeometryUtils.js';
-import {OBJLoader} from "three/examples/jsm/loaders/OBJLoader";
+import {OBJLoader} from "three/examples/jsm/loaders/OBJLoader.js";
 
 const processTetGeometry = (tetVertsRaw, tetIdsRaw) => {
     let vertices = [];

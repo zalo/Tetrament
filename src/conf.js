@@ -1,8 +1,10 @@
 import {Pane} from 'tweakpane';
 import * as EssentialsPlugin from '@tweakpane/plugin-essentials';
-import mobile from "is-mobile";
 
-const isMobile = mobile();
+// Inline mobile detection (is-mobile package is CommonJS, not compatible with ES modules)
+const isMobile = /android|bb\d+|meego|mobile|phone|tablet|ip(ad|hone|od)|silk/i.test(
+    typeof navigator !== 'undefined' ? navigator.userAgent : ''
+);
 
 class Conf {
     gui = null;

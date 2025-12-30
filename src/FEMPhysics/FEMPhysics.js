@@ -23,7 +23,7 @@ import {
     normalize, Return, uniform, select, time, mix, min, uniformArray, ivec3, atomicAdd, atomicStore, atomicFunc, uvec3, struct
 } from "three/tsl";
 import {SoftbodyGeometry} from "./softbodyGeometry.js";
-import {conf} from "../conf";
+import {conf} from "../conf.js";
 import {StructuredArray} from "./structuredArray.js";
 import { murmurHash13, rotateByQuat, quat_conj, quat_mult, extractRotation } from "./math.js";
 import {Grid} from "./grid.js";

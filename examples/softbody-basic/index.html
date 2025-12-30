@@ -94,6 +94,14 @@
 
             await renderer.init();
 
+            // Check if we got WebGPU or fell back to WebGL2
+            if (!renderer.backend.isWebGPUBackend) {
+                console.warn('WebGPU not available, falling back to WebGL2');
+                document.getElementById('loading').innerHTML =
+                    'WebGPU not available. This demo requires WebGPU (Chrome 113+ with WebGPU enabled).';
+                throw new Error('WebGPU required');
+            }
+
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.target.set(0, 1, 0);
