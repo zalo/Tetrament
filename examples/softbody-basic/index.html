@@ -113,7 +113,7 @@
             scene.background = new THREE.Color(0x0a0a1a);
 
             const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
-            camera.position.set(0, 2, 4);
+            camera.position.set(0, 5, 10);
 
             // WebGPU Renderer
             const renderer = new THREE.WebGPURenderer({ antialias: true });
@@ -176,7 +176,7 @@
 
                 // Actions
                 spawn: () => spawnShape(),
-                clearAll: () => clearAllBodies(),
+                clearAll: () => resetSimulation(),
                 resetSimulation: () => resetSimulation()
             };
 
@@ -212,7 +212,7 @@
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 10; i++) {
+            for (let i = 0; i < 300; i++) {
                 const instance = simulation.addInstance(geom);
                 instances.push({ instance, shape: params.shape });
             }
@@ -449,6 +449,8 @@
                 controls.update();
 
                 await simulation.update(deltaTime, currentTime / 1000);
+
+                dragControl._updateVisualHelpers();
 
                 renderer.render(scene, camera);
                 requestAnimationFrame(animate);
