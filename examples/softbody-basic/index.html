@@ -212,7 +212,7 @@
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 300; i++) {
+            for (let i = 0; i < 100; i++) {
                 const instance = simulation.addInstance(geom);
                 instances.push({ instance, shape: params.shape });
             }
@@ -372,6 +372,7 @@
 
             // Setup GUI
             const gui = new GUI({ title: 'Softbody Simulation' });
+            const isMobile = window.innerWidth < window.innerHeight;
 
             // Simulation folder
             const simFolder = gui.addFolder('Simulation');
@@ -386,7 +387,16 @@
                 simulation.config.friction = v;
                 simulation.uniforms.friction.value = v;
             });
-            simFolder.open();
+            if (!isMobile) { simFolder.open(); } else { simFolder.close(); }
+
+            // Spawn folder
+            const spawnFolder = gui.addFolder('Spawn');
+            spawnFolder.add(params, 'shape', Object.keys(shapeGenerators)).name('Shape');
+            spawnFolder.add(params, 'spawnHeight', 1, 10, 0.5).name('Spawn Height');
+            spawnFolder.add(params, 'numToSpawn', 1, 5, 1).name('Count');
+            spawnFolder.add(params, 'spawn').name('Spawn Shape');
+            spawnFolder.add(params, 'clearAll').name('Clear All');
+            if (!isMobile) { spawnFolder.open(); } else { spawnFolder.close(); }
 
             // Debug folder
             const debugFolder = gui.addFolder('Debug');
@@ -404,16 +414,7 @@
                     tetVisualizer.disable();
                 }
             });
-            debugFolder.open();
-
-            // Spawn folder
-            const spawnFolder = gui.addFolder('Spawn');
-            spawnFolder.add(params, 'shape', Object.keys(shapeGenerators)).name('Shape');
-            spawnFolder.add(params, 'spawnHeight', 1, 10, 0.5).name('Spawn Height');
-            spawnFolder.add(params, 'numToSpawn', 1, 5, 1).name('Count');
-            spawnFolder.add(params, 'spawn').name('Spawn Shape');
-            spawnFolder.add(params, 'clearAll').name('Clear All');
-            spawnFolder.open();
+            if (!isMobile) { debugFolder.open(); } else { debugFolder.close(); }
 
             // Hide loading screen
             document.getElementById('loading').classList.add('hidden');
