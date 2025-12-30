@@ -1,19 +1,178 @@
-# Realtime softbody simulation in the Browser with WebGPU
+# Tetrament
 
-This is a realtime simulation of softbodies with collisions, running in the browser using the three.js WebGPURenderer.
+A comprehensive Three.js library for tetrahedralizing geometries and running real-time softbody simulations using WebGPU compute shaders.
 
 See it running live [here](https://holtsetio.com/lab/softbodies/)!
 
 [![softbodies](https://github.com/user-attachments/assets/843f8955-d45b-4702-9e9b-77ebb99a0075)](https://holtsetio.com/lab/softbodies/)
 
+## Features
+
+- **Tetrahedralization**: Convert any Three.js geometry into a tetrahedral mesh using Delaunay tetrahedralization (Bowyer-Watson algorithm)
+- **Real-time Softbody Physics**: GPU-accelerated FEM (Finite Element Method) physics simulation
+- **WebGPU Compute Shaders**: Massively parallel physics computation for high performance
+- **SDF Colliders**: Sphere, box, capsule, plane, and mesh colliders
+- **Interactive Controls**: Mouse dragging and vertex anchoring
+- **Debug Visualization**: Strain visualization and tetrahedral mesh inspection
+- **Geometry Generators**: Pre-built tube, sphere, and box generators
+
+## Installation
+
+```bash
+npm install tetrament three three-mesh-bvh
+```
+
+## Requirements
+
+- Three.js 0.160.0 or higher (with WebGPU support)
+- three-mesh-bvh 0.7.0 or higher
+- WebGPU-enabled browser (Chrome 113+, Edge 113+)
+
+## Quick Start
+
+### Tetrahedralization Only
+
+```javascript
+import * as THREE from 'three';
+import { tetrahedralize, TetVisualizer } from 'tetrament';
+
+// Create a geometry
+const geometry = new THREE.SphereGeometry(1, 16, 12);
+
+// Tetrahedralize it
+const result = tetrahedralize(geometry, {
+    resolution: 10,    // Interior sampling resolution
+    minQuality: 0.001  // Minimum tet quality
+});
+
+console.log(`Created ${result.tetCount} tetrahedra`);
+
+// Visualize the result
+const visualizer = new TetVisualizer();
+const tetMesh = visualizer.createVisualization(result.tetVerts, result.tetIds, {
+    showWireframe: true,
+    showFaces: true,
+    colorByQuality: true
+});
+scene.add(tetMesh);
+```
+
+### Softbody Simulation
+
+```javascript
+import * as THREE from 'three/webgpu';
+import {
+    SoftbodySimulation,
+    generateTube,
+    PlaneCollider,
+    DragControl
+} from 'tetrament';
+
+// Create WebGPU renderer
+const renderer = new THREE.WebGPURenderer();
+await renderer.init();
+
+// Create simulation
+const simulation = new SoftbodySimulation(renderer, {
+    stepsPerSecond: 180,
+    gravity: new THREE.Vector3(0, -19.62, 0)
+});
+
+// Add ground collider
+simulation.addCollider(PlaneCollider(new THREE.Vector3(0, 1, 0), 0));
+
+// Generate a tube model
+const tubeModel = generateTube(15, { radius: 0.1 });
+
+// Add geometry and create instances
+const geometry = simulation.addGeometry(tubeModel);
+const instance = simulation.addInstance(geometry);
+
+// Add to scene
+scene.add(simulation.object);
+
+// Initialize simulation
+await simulation.bake();
+
+// Spawn the softbody
+await instance.spawn(
+    new THREE.Vector3(0, 3, 0),
+    new THREE.Quaternion(),
+    new THREE.Vector3(1, 1, 1)
+);
+
+// Enable mouse interaction
+const dragControl = new DragControl(simulation, camera, renderer.domElement);
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    simulation.update(deltaTime);
+    renderer.render(scene, camera);
+}
+```
+
+## API Overview
+
+### Tetrahedralization
+- `tetrahedralize(geometry, options)` - Tetrahedralize a BufferGeometry
+- `tetrahedralizePoints(points, options)` - Tetrahedralize a point cloud
+- `Tetrahedralizer` class - Full control over tetrahedralization
+
+### Simulation
+- `SoftbodySimulation` - Main physics simulation
+- `SoftbodyGeometry` - Manages softbody rendering
+- `SoftbodyInstance` - Individual softbody instance
+
+### Colliders
+- `PlaneCollider`, `GroundPlane` - Infinite planes
+- `SphereCollider`, `DynamicSphereCollider` - Spheres
+- `BoxCollider`, `DynamicBoxCollider` - Axis-aligned boxes
+- `CapsuleCollider`, `DynamicCapsuleCollider` - Capsules
+- `MeshCollider` - Complex mesh shapes (CPU-based)
+
+### Geometry Generators
+- `generateTube(segments, options)` - Tube/capsule shapes
+- `generateSphere(radius, options)` - Spheres
+- `generateBox(w, h, d, options)` - Boxes
+
+### Controls
+- `DragControl` - Mouse interaction
+- `AnchorControl` - Pin vertices to transforms
+
+### Debug
+- `TetVisualizer` - Visualize tetrahedral mesh
+- `StrainVisualizer` - Show compression/tension
+
+## Examples
+
+- `/examples/tetrahedralization/` - Interactive tetrahedralization demo
+- `/examples/softbody-basic/` - Basic softbody simulation
+
+## Development
+
+```bash
+# Install dependencies
+npm install
+
+# Build library
+npm run build
+
+# Build with watch mode
+npm run dev
+
+# Build demo
+npm run build:demo
+```
+
 ## Credits
 
-The softbody simulation is based on the WebGL implementation in [TetSim](https://github.com/zalo/TetSim) by [Johnathon Selstad](https://github.com/zalo). I reimplemented it in three.js TSL and added collision detection.
+The softbody simulation is based on the WebGL implementation in [TetSim](https://github.com/zalo/TetSim) by [Johnathon Selstad](https://github.com/zalo). Reimplemented in three.js TSL with collision detection.
+
+Tetrahedralization algorithm based on [Ten Minute Physics](https://www.youtube.com/channel/UCTG_vrRdKYfrpqCv_WV4eyA) by Matthias Mueller.
 
 Full list of credits for the assets can be found [here](CREDITS.md)
 
-## How to run
-```
-npm install
-npm run dev
-```
+## License
+
+MIT

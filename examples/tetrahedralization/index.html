@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetrament - Tetrahedralization Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; }
+        #container { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 15px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+            max-width: 300px;
+        }
+        #info h1 { font-size: 16px; margin-bottom: 10px; }
+        #info p { font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+        #stats {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 15px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+        }
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            padding: 15px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+        }
+        button {
+            padding: 8px 16px;
+            margin: 4px;
+            border: none;
+            border-radius: 4px;
+            background: #4a4af0;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        button:hover { background: #6060ff; }
+        button.active { background: #2a8a2a; }
+        select, input {
+            padding: 6px;
+            margin: 4px;
+            border: 1px solid #444;
+            border-radius: 4px;
+            background: #2a2a3e;
+            color: white;
+        }
+        label { font-size: 12px; display: block; margin-top: 8px; }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+    <div id="info">
+        <h1>Tetrahedralization Demo</h1>
+        <p>This example demonstrates the Delaunay tetrahedralization algorithm. Select a geometry and adjust parameters to see how the mesh is divided into tetrahedra.</p>
+        <p>Quality colors: <span style="color:#0f0">Green = High</span>, <span style="color:#ff0">Yellow = Medium</span>, <span style="color:#f00">Red = Low</span></p>
+    </div>
+    <div id="stats">Loading...</div>
+    <div id="controls">
+        <label>Geometry:
+            <select id="geometry">
+                <option value="sphere">Sphere</option>
+                <option value="box">Box</option>
+                <option value="torus">Torus</option>
+                <option value="knot">Torus Knot</option>
+            </select>
+        </label>
+        <label>Resolution:
+            <input type="range" id="resolution" min="0" max="20" value="8">
+            <span id="resValue">8</span>
+        </label>
+        <label>Min Quality:
+            <input type="range" id="quality" min="-4" max="0" step="0.5" value="-2">
+            <span id="qualValue">0.01</span>
+        </label>
+        <button id="generate">Generate</button>
+        <button id="toggleWireframe" class="active">Wireframe</button>
+        <button id="toggleFaces" class="active">Faces</button>
+        <button id="toggleQuality">Quality Colors</button>
+    </div>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.tsl.js",
+            "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Import tetrament (adjust path for your setup)
+        import { Tetrahedralizer, TetVisualizer } from '../../lib/index.js';
+
+        // Scene setup
+        const container = document.getElementById('container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(3, 2, 3);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+
+        // Lights
+        scene.add(new THREE.AmbientLight(0x404040));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(5, 5, 5);
+        scene.add(dirLight);
+
+        // Grid
+        const grid = new THREE.GridHelper(10, 10, 0x444444, 0x222222);
+        scene.add(grid);
+
+        // State
+        let currentVisualizer = null;
+        let showWireframe = true;
+        let showFaces = true;
+        let colorByQuality = false;
+
+        // Geometry generators
+        const geometries = {
+            sphere: () => new THREE.SphereGeometry(1, 16, 12),
+            box: () => new THREE.BoxGeometry(1.5, 1.5, 1.5, 4, 4, 4),
+            torus: () => new THREE.TorusGeometry(0.8, 0.3, 12, 24),
+            knot: () => new THREE.TorusKnotGeometry(0.6, 0.2, 64, 8)
+        };
+
+        // Generate tetrahedralization
+        async function generate() {
+            const geomType = document.getElementById('geometry').value;
+            const resolution = parseInt(document.getElementById('resolution').value);
+            const minQuality = Math.pow(10, parseFloat(document.getElementById('quality').value));
+
+            document.getElementById('stats').textContent = 'Generating...';
+
+            // Clean up old visualization
+            if (currentVisualizer) {
+                currentVisualizer.dispose();
+                scene.remove(currentVisualizer.group);
+            }
+
+            // Create geometry
+            const geometry = geometries[geomType]();
+
+            // Tetrahedralize
+            const startTime = performance.now();
+            const tetrahedralizer = new Tetrahedralizer({
+                resolution,
+                minQuality,
+                verbose: true
+            });
+
+            const result = tetrahedralizer.tetrahedralize(geometry);
+            const elapsed = performance.now() - startTime;
+
+            tetrahedralizer.dispose();
+            geometry.dispose();
+
+            // Create visualization
+            currentVisualizer = new TetVisualizer({
+                scale: 0.85,
+                opacity: 0.4
+            });
+
+            currentVisualizer.createVisualization(result.tetVerts, result.tetIds, {
+                showWireframe,
+                showFaces,
+                colorByQuality
+            });
+
+            scene.add(currentVisualizer.group);
+
+            // Get stats
+            const stats = TetVisualizer.getStatistics(result.tetVerts, result.tetIds);
+
+            document.getElementById('stats').innerHTML = `
+                <strong>Statistics</strong><br>
+                Vertices: ${stats.vertexCount}<br>
+                Tetrahedra: ${stats.tetCount}<br>
+                Volume: ${stats.totalVolume.toFixed(4)}<br>
+                Quality (min): ${stats.minQuality.toFixed(4)}<br>
+                Quality (max): ${stats.maxQuality.toFixed(4)}<br>
+                Quality (avg): ${stats.avgQuality.toFixed(4)}<br>
+                Time: ${elapsed.toFixed(1)}ms
+            `;
+        }
+
+        // UI handlers
+        document.getElementById('resolution').addEventListener('input', (e) => {
+            document.getElementById('resValue').textContent = e.target.value;
+        });
+
+        document.getElementById('quality').addEventListener('input', (e) => {
+            const val = Math.pow(10, parseFloat(e.target.value));
+            document.getElementById('qualValue').textContent = val.toFixed(4);
+        });
+
+        document.getElementById('generate').addEventListener('click', generate);
+
+        document.getElementById('toggleWireframe').addEventListener('click', (e) => {
+            showWireframe = !showWireframe;
+            e.target.classList.toggle('active', showWireframe);
+            if (currentVisualizer) currentVisualizer.setWireframeVisible(showWireframe);
+        });
+
+        document.getElementById('toggleFaces').addEventListener('click', (e) => {
+            showFaces = !showFaces;
+            e.target.classList.toggle('active', showFaces);
+            if (currentVisualizer) currentVisualizer.setFacesVisible(showFaces);
+        });
+
+        document.getElementById('toggleQuality').addEventListener('click', (e) => {
+            colorByQuality = !colorByQuality;
+            e.target.classList.toggle('active', colorByQuality);
+            generate();
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // Animation loop
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Initialize
+        generate();
+        animate();
+    </script>
+</body>
+</html>

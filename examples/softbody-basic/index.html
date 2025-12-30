@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tetrament - Softbody Simulation Demo</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a1a; color: #eee; overflow: hidden; }
+        #container { width: 100vw; height: 100vh; }
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            padding: 15px;
+            background: rgba(0,0,0,0.7);
+            border-radius: 8px;
+            max-width: 320px;
+        }
+        #info h1 { font-size: 16px; margin-bottom: 10px; color: #4af; }
+        #info p { font-size: 12px; line-height: 1.5; margin-bottom: 8px; }
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #0a0a1a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            z-index: 1000;
+        }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+    <div id="loading">Loading WebGPU...</div>
+    <div id="container"></div>
+    <div id="info">
+        <h1>Softbody Simulation</h1>
+        <p>This example demonstrates real-time softbody physics using WebGPU compute shaders.</p>
+        <p><strong>Controls:</strong></p>
+        <p>- Left click + drag: Rotate camera</p>
+        <p>- Right click: Push softbodies</p>
+        <p>- Scroll: Zoom</p>
+        <p><strong>Note:</strong> Requires WebGPU-enabled browser (Chrome 113+, Edge 113+)</p>
+    </div>
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.tsl.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+            "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js"
+        }
+    }
+    </script>
+    <script type="module">
+        import * as THREE from 'three/webgpu';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // Import tetrament library
+        import {
+            SoftbodySimulation,
+            generateTube,
+            PlaneCollider,
+            DragControl
+        } from '../../lib/index.js';
+
+        // Check WebGPU support
+        if (!navigator.gpu) {
+            document.getElementById('loading').innerHTML =
+                'WebGPU not supported. Please use Chrome 113+ or Edge 113+';
+            throw new Error('WebGPU not supported');
+        }
+
+        async function init() {
+            // Scene setup
+            const container = document.getElementById('container');
+            const scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a1a);
+
+            const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 2, 5);
+
+            // WebGPU Renderer
+            const renderer = new THREE.WebGPURenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            await renderer.init();
+
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 1, 0);
+
+            // Lights
+            scene.add(new THREE.AmbientLight(0x404060, 0.5));
+
+            const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+            dirLight.position.set(5, 10, 5);
+            dirLight.castShadow = true;
+            scene.add(dirLight);
+
+            // Ground plane visual
+            const groundGeom = new THREE.PlaneGeometry(20, 20);
+            const groundMat = new THREE.MeshStandardMaterial({
+                color: 0x222233,
+                roughness: 0.8
+            });
+            const ground = new THREE.Mesh(groundGeom, groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.receiveShadow = true;
+            scene.add(ground);
+
+            // Grid
+            const grid = new THREE.GridHelper(20, 20, 0x444466, 0x333344);
+            grid.position.y = 0.01;
+            scene.add(grid);
+
+            // Create softbody simulation
+            const simulation = new SoftbodySimulation(renderer, {
+                stepsPerSecond: 180,
+                gravity: new THREE.Vector3(0, -19.62, 0)
+            });
+
+            // Add ground collider
+            simulation.addCollider(PlaneCollider(new THREE.Vector3(0, 1, 0), 0));
+
+            // Generate tube models
+            const tubeModel = generateTube(15, { radius: 0.1 });
+
+            // Add geometry to simulation
+            const tubeGeometry = simulation.addGeometry(tubeModel);
+
+            // Configure material
+            tubeGeometry.material.color = new THREE.Color(0x4488ff);
+            tubeGeometry.material.roughness = 0.3;
+            tubeGeometry.material.metalness = 0.1;
+
+            // Create instances
+            const instances = [];
+            const numInstances = 5;
+
+            for (let i = 0; i < numInstances; i++) {
+                const instance = simulation.addInstance(tubeGeometry);
+                instances.push(instance);
+            }
+
+            // Add to scene
+            scene.add(simulation.object);
+
+            // Bake simulation (compile GPU shaders)
+            await simulation.bake();
+
+            // Spawn instances
+            for (let i = 0; i < numInstances; i++) {
+                const x = (i - numInstances / 2) * 0.5;
+                await instances[i].spawn(
+                    new THREE.Vector3(x, 3 + i * 0.5, 0),
+                    new THREE.Quaternion().setFromEuler(new THREE.Euler(0, 0, Math.PI / 2)),
+                    new THREE.Vector3(1, 1, 1)
+                );
+            }
+
+            // Create drag control
+            const dragControl = new DragControl(simulation, camera, renderer.domElement, {
+                force: 0.5,
+                button: 'right'
+            });
+
+            // Hide loading screen
+            document.getElementById('loading').classList.add('hidden');
+
+            // Resize handler
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+
+            // Animation loop
+            let lastTime = performance.now();
+
+            async function animate() {
+                const currentTime = performance.now();
+                const deltaTime = (currentTime - lastTime) / 1000;
+                lastTime = currentTime;
+
+                controls.update();
+
+                await simulation.update(deltaTime, currentTime / 1000);
+
+                renderer.render(scene, camera);
+                requestAnimationFrame(animate);
+            }
+
+            animate();
+        }
+
+        init().catch(console.error);
+    </script>
+</body>
+</html>

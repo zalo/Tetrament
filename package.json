@@ -1,17 +1,68 @@
 {
-  "name": "Tetrament",
-  "version": "0.0.1",
+  "name": "tetrament",
+  "version": "1.0.0",
+  "description": "Three.js softbody simulation library with tetrahedralization, WebGPU compute shaders, and FEM physics",
   "type": "module",
-  "scripts": {
-    "build_demo": "esbuild ./src/main.js --bundle --minify --sourcemap --format=esm --outdir=./build"
+  "main": "dist/tetrament.js",
+  "module": "dist/tetrament.js",
+  "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/tetrament.js",
+      "types": "./lib/index.d.ts"
+    },
+    "./lib/*": "./lib/*"
   },
-  "dependencies": {
+  "files": [
+    "dist",
+    "lib",
+    "LICENSE",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "esbuild ./lib/index.js --bundle --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.js",
+    "build:min": "esbuild ./lib/index.js --bundle --minify --sourcemap --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.min.js",
+    "build:demo": "esbuild ./src/main.js --bundle --minify --sourcemap --format=esm --outdir=./build",
+    "build:all": "npm run build && npm run build:min && npm run build:demo",
+    "dev": "esbuild ./lib/index.js --bundle --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.js --watch",
+    "prepublishOnly": "npm run build:all"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/tetrament.git"
+  },
+  "keywords": [
+    "three.js",
+    "threejs",
+    "webgpu",
+    "softbody",
+    "physics",
+    "simulation",
+    "tetrahedron",
+    "tetrahedralization",
+    "delaunay",
+    "fem",
+    "finite-element",
+    "deformable",
+    "mesh",
+    "3d"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/yourusername/tetrament/issues"
+  },
+  "homepage": "https://github.com/yourusername/tetrament#readme",
+  "peerDependencies": {
+    "three": ">=0.160.0",
+    "three-mesh-bvh": ">=0.7.0"
+  },
+  "devDependencies": {
     "@tweakpane/plugin-essentials": "^0.2.1",
     "esbuild": "^0.27.2",
     "is-mobile": "^5.0.0",
-    "three": "^0.177.0",
-    "three-mesh-bvh": "^0.9.4",
     "tweakpane": "^4.0.5",
     "tweakpane-plugin-infodump": "^4.0.2"
-  }
+  },
+  "dependencies": {}
 }
