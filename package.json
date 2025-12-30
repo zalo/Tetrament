@@ -22,8 +22,7 @@
   "scripts": {
     "build": "esbuild ./lib/index.js --bundle --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.js",
     "build:min": "esbuild ./lib/index.js --bundle --minify --sourcemap --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.min.js",
-    "build:demo": "esbuild ./src/main.js --bundle --minify --sourcemap --format=esm --outdir=./build",
-    "build:all": "npm run build && npm run build:min && npm run build:demo",
+    "build:all": "npm run build && npm run build:min",
     "dev": "esbuild ./lib/index.js --bundle --format=esm --external:three --external:three/* --external:three-mesh-bvh --outfile=./dist/tetrament.js --watch",
     "prepublishOnly": "npm run build:all"
   },
