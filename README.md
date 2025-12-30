@@ -2,6 +2,10 @@
 
 A comprehensive Three.js library for tetrahedralizing geometries and running real-time softbody simulations using WebGPU compute shaders.
 
+### [Tetrahedralization Example](https://zalo.github.io/Tetrament/examples/tetrahedralization/)
+
+### [Softbody Simulation Example](https://zalo.github.io/Tetrament/examples/softbody-basic/)
+
 ## Features
 
 - **Tetrahedralization**: Convert any Three.js geometry into a tetrahedral mesh using Delaunay tetrahedralization (Bowyer-Watson algorithm)
@@ -171,11 +175,9 @@ npm run dev
 
 ## Credits
 
-The softbody simulation is based on the WebGL implementation in [TetSim](https://github.com/zalo/TetSim) by [Johnathon Selstad](https://github.com/zalo). Reimplemented in three.js TSL with collision detection.
+The softbody simulation is based on the WebGL implementation in [TetSim](https://github.com/zalo/TetSim). Reimplemented in three.js TSL with collision detection by [holtsetio](https://github.com/holtsetio/softbodies).
 
 Tetrahedralization algorithm based on [Ten Minute Physics](https://www.youtube.com/channel/UCTG_vrRdKYfrpqCv_WV4eyA) by Matthias Mueller.
-
-Full list of credits for the assets can be found [here](CREDITS.md)
 
 ## License
 
