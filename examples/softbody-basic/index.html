@@ -52,10 +52,10 @@
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
-            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.webgpu.js",
-            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.177.0/build/three.tsl.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.177.0/examples/jsm/",
+            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.webgpu.js",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.tsl.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/",
             "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js",
             "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.min.js"
         }
@@ -94,7 +94,7 @@
 
         // Shape generator configurations
         const shapeGenerators = {
-            tube: () => generateTube(15, { radius: 0.1 }),
+            tube: () => generateTube(35, { radius: 0.1 }),
             sphere: () => generateIcosphere(0.5, { resolution: 6, detail: 2 }),
             box: () => generateBox(1.0, 1.0, 1.0, { resolution: 4 }),
             torus: () => generateTorus(0.5, 0.08, { resolution: 5, radialSegments: 12, tubularSegments: 24 }),
@@ -217,7 +217,7 @@
 
             // Create initial instances BEFORE bake (instances add vertices/tets to simulation)
             setStatus('Creating initial instances...');
-            for (let i = 0; i < 500; i++) {
+            for (let i = 0; i < 200; i++) {
                 const instance = simulation.addInstance(geom);
                 instances.push({ instance, shape: params.shape });
             }

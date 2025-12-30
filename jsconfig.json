@@ -3,11 +3,11 @@
         "module": "es6",
         "target": "es6"
     },
-    "include": ["src/**/*"],
+    "include": ["lib/**/*", "examples/**/*"],
     "typeAcquisition": {
         "include": [
             "three",
-            "manifold-3d"
+            "three-mesh-bvh"
         ]
     }
 }

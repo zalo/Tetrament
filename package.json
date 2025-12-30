@@ -53,7 +53,7 @@
   },
   "homepage": "https://github.com/yourusername/tetrament#readme",
   "peerDependencies": {
-    "three": ">=0.160.0",
+    "three": "^0.183.0",
     "three-mesh-bvh": ">=0.7.0"
   },
   "devDependencies": {
@@ -62,6 +62,5 @@
     "is-mobile": "^5.0.0",
     "tweakpane": "^4.0.5",
     "tweakpane-plugin-infodump": "^4.0.2"
-  },
-  "dependencies": {}
+  }
 }

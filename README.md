@@ -2,10 +2,6 @@
 
 A comprehensive Three.js library for tetrahedralizing geometries and running real-time softbody simulations using WebGPU compute shaders.
 
-See it running live [here](https://holtsetio.com/lab/softbodies/)!
-
-[![softbodies](https://github.com/user-attachments/assets/843f8955-d45b-4702-9e9b-77ebb99a0075)](https://holtsetio.com/lab/softbodies/)
-
 ## Features
 
 - **Tetrahedralization**: Convert any Three.js geometry into a tetrahedral mesh using Delaunay tetrahedralization (Bowyer-Watson algorithm)
@@ -14,7 +10,7 @@ See it running live [here](https://holtsetio.com/lab/softbodies/)!
 - **SDF Colliders**: Sphere, box, capsule, plane, and mesh colliders
 - **Interactive Controls**: Mouse dragging and vertex anchoring
 - **Debug Visualization**: Strain visualization and tetrahedral mesh inspection
-- **Geometry Generators**: Pre-built tube, sphere, and box generators
+- **Geometry Generators**: Pre-built tube, sphere, box, torus, cylinder, and cone generators
 
 ## Installation
 
@@ -24,7 +20,7 @@ npm install tetrament three three-mesh-bvh
 
 ## Requirements
 
-- Three.js 0.160.0 or higher (with WebGPU support)
+- Three.js 0.183.0 or higher (with WebGPU support)
 - three-mesh-bvh 0.7.0 or higher
 - WebGPU-enabled browser (Chrome 113+, Edge 113+)
 
@@ -125,16 +121,27 @@ function animate() {
 - `SoftbodyInstance` - Individual softbody instance
 
 ### Colliders
-- `PlaneCollider`, `GroundPlane` - Infinite planes
-- `SphereCollider`, `DynamicSphereCollider` - Spheres
-- `BoxCollider`, `DynamicBoxCollider` - Axis-aligned boxes
-- `CapsuleCollider`, `DynamicCapsuleCollider` - Capsules
+- `PlaneCollider` - Infinite plane
+- `SphereCollider` - Sphere (static)
+- `BoxCollider` - Axis-aligned box
+- `CapsuleCollider` - Capsule
 - `MeshCollider` - Complex mesh shapes (CPU-based)
 
 ### Geometry Generators
 - `generateTube(segments, options)` - Tube/capsule shapes
 - `generateSphere(radius, options)` - Spheres
+- `generateIcosphere(radius, options)` - Icosphere variant
 - `generateBox(w, h, d, options)` - Boxes
+- `generateTorus(options)` - Torus shapes
+- `generateTorusKnot(options)` - Torus knots
+- `generateCylinder(options)` - Cylinders
+- `generateCone(options)` - Cones
+
+### Model Processing
+- `processGeometry(geometry)` - Process BufferGeometry for softbody use
+- `processTetGeometry(tetVerts, tetIds, geometry)` - Process pre-tetrahedralized geometry
+- `loadModelFromMsh(mshData)` - Load from MSH format
+- `loadModelFromGeometry(geometry, options)` - Load from BufferGeometry with tetrahedralization
 
 ### Controls
 - `DragControl` - Mouse interaction
@@ -160,9 +167,6 @@ npm run build
 
 # Build with watch mode
 npm run dev
-
-# Build demo
-npm run build:demo
 ```
 
 ## Credits
