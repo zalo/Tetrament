@@ -1,0 +1,17 @@
+{
+  "name": "Tetrament",
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build_demo": "esbuild ./src/main.js --bundle --minify --sourcemap --format=esm --outdir=./build"
+  },
+  "dependencies": {
+    "@tweakpane/plugin-essentials": "^0.2.1",
+    "esbuild": "^0.27.2",
+    "is-mobile": "^5.0.0",
+    "three": "^0.177.0",
+    "three-mesh-bvh": "^0.9.4",
+    "tweakpane": "^4.0.5",
+    "tweakpane-plugin-infodump": "^4.0.2"
+  }
+}
