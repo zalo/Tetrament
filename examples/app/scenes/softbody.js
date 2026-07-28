@@ -80,7 +80,7 @@ export function createSoftbodyScene() {
 
         // Initial population.
         const initial = [
-            ['tube', 26], ['sphere', 5], ['box', 4], ['gem', 3], ['star', 3], ['torus', 3],
+            ['tube', 78], ['sphere', 5], ['box', 4], ['gem', 3], ['star', 3], ['torus', 3],
         ];
         ctx.setStatus('Tetrahedralizing shapes…');
         for (const [shape] of initial) ensureGeometry(shape);

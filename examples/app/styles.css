@@ -10,7 +10,6 @@
     --accent-2: #57e0c8;
     --danger: #ff6b6b;
     --radius: 12px;
-    --sidebar-w: 320px;
     font-synthesis: none;
 }
 
@@ -36,31 +35,28 @@ body {
 }
 #viewport canvas { display: block; }
 
-/* ---------- Sidebar ---------- */
-#sidebar {
+/* ---------- Corner HUD ---------- */
+#hud {
     position: fixed;
-    top: 0;
-    left: 0;
+    left: 16px;
+    bottom: 16px;
+    left: max(16px, env(safe-area-inset-left));
+    bottom: max(16px, env(safe-area-inset-bottom));
     z-index: 10;
-    width: var(--sidebar-w);
-    height: 100%;
-    height: 100dvh;
     display: flex;
     flex-direction: column;
-    gap: 18px;
-    padding: 22px 20px;
-    padding-top: max(22px, env(safe-area-inset-top));
-    background: linear-gradient(180deg, rgba(11,13,22,0.94), rgba(11,13,22,0.80));
+    gap: 8px;
+    max-width: min(340px, 80vw);
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--panel);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
-    border-right: 1px solid var(--border);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    overflow-y: auto;
 }
 
 .logo { display: flex; align-items: center; gap: 10px; }
 .logo-mark {
-    font-size: 22px;
     color: var(--accent-2);
     filter: drop-shadow(0 0 8px rgba(87, 224, 200, 0.5));
 }
@@ -73,59 +69,17 @@ body {
     background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-.tagline {
-    margin-top: 8px;
+.hud-title {
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+.hud-hint {
     font-size: 12px;
-    line-height: 1.5;
+    line-height: 1.6;
     color: var(--muted);
 }
-
-/* Scene navigation */
-.scene-nav { display: flex; flex-direction: column; gap: 8px; }
-.scene-btn {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    padding: 12px 14px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.02);
-    color: var(--text);
-    cursor: pointer;
-    text-align: left;
-    font-size: 14px;
-    font-weight: 500;
-    font-family: inherit;
-    transition: background 0.18s, border-color 0.18s, transform 0.1s;
-}
-.scene-btn:hover { background: rgba(108, 140, 255, 0.10); border-color: rgba(108, 140, 255, 0.35); }
-.scene-btn:active { transform: scale(0.99); }
-.scene-btn.active {
-    background: linear-gradient(90deg, rgba(108,140,255,0.22), rgba(87,224,200,0.10));
-    border-color: var(--accent);
-}
-.scene-btn .icon { font-size: 18px; width: 22px; text-align: center; }
-.scene-btn .meta { display: flex; flex-direction: column; }
-.scene-btn .meta small { color: var(--muted); font-size: 11px; font-weight: 400; }
-
-/* Scene info block */
-.scene-info { flex: 1 1 auto; }
-.scene-info h2 {
-    font-size: 13px;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--accent-2);
-    margin-bottom: 8px;
-}
-.scene-info p { font-size: 13px; line-height: 1.6; color: var(--muted); }
-.hint {
-    margin-top: 14px;
-    font-size: 12px;
-    line-height: 1.7;
-    color: var(--muted);
-}
-.hint kbd {
+.hud-hint kbd {
     display: inline-block;
     padding: 1px 6px;
     border-radius: 5px;
@@ -134,15 +88,6 @@ body {
     color: var(--text);
     font-family: ui-monospace, monospace;
     font-size: 11px;
-}
-
-/* Footer */
-.sidebar-foot {
-    border-top: 1px solid var(--border);
-    padding-top: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
 }
 .stats {
     font-family: ui-monospace, 'SF Mono', monospace;
@@ -155,24 +100,6 @@ body {
 .stats b { color: var(--text); font-weight: 600; }
 .repo-link { font-size: 12px; color: var(--accent); text-decoration: none; }
 .repo-link:hover { text-decoration: underline; }
-
-/* ---------- Mobile toggle ---------- */
-#menu-toggle {
-    position: fixed;
-    top: 14px;
-    left: 14px;
-    z-index: 20;
-    display: none;
-    width: 42px;
-    height: 42px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--panel);
-    backdrop-filter: blur(10px);
-    color: var(--text);
-    font-size: 18px;
-    cursor: pointer;
-}
 
 /* ---------- Overlay ---------- */
 #overlay {
@@ -235,15 +162,6 @@ body {
 
 /* ---------- Responsive ---------- */
 @media (max-width: 820px) {
-    #menu-toggle { display: block; top: max(14px, env(safe-area-inset-top)); }
-    #sidebar {
-        width: min(var(--sidebar-w), 86vw);
-        transform: translateX(-100%);
-        box-shadow: 0 0 40px rgba(0,0,0,0.5);
-    }
-    #sidebar.open { transform: translateX(0); }
-    .lil-gui.root { top: 64px; right: 10px; max-height: 70dvh; }
-    /* The GUI panel is fixed top-right and would overlap the (nearly full-width)
-       sidebar on narrow screens, stealing taps. Hide it while the menu is open. */
-    body.menu-open .lil-gui.root { display: none; }
+    .lil-gui.root { top: 10px; right: 10px; max-height: 70dvh; }
+    #hud { max-width: min(340px, 62vw); font-size: 11px; }
 }

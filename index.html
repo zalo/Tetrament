@@ -25,32 +25,13 @@
     <!-- 3D canvas host -->
     <div id="viewport"></div>
 
-    <!-- Sidebar -->
-    <aside id="sidebar">
-        <header class="sidebar-head">
-            <div class="logo">
-                <span class="logo-mark">△</span>
-                <span class="logo-text">Tetrament</span>
-            </div>
-            <p class="tagline">Real-time softbody physics with WebGPU &amp; FEM</p>
-        </header>
-
-        <nav id="scene-nav" class="scene-nav"><!-- populated by app.js --></nav>
-
-        <section class="scene-info">
-            <h2 id="scene-title">—</h2>
-            <p id="scene-desc"></p>
-            <div id="scene-hint" class="hint"></div>
-        </section>
-
-        <footer class="sidebar-foot">
-            <div id="stats" class="stats"></div>
-            <a class="repo-link" href="https://github.com/zalo/Tetrament" target="_blank" rel="noopener">View source ↗</a>
-        </footer>
-    </aside>
-
-    <!-- Mobile sidebar toggle -->
-    <button id="menu-toggle" aria-label="Toggle menu">☰</button>
+    <!-- Minimal corner HUD -->
+    <div id="hud">
+        <div class="hud-title"><span class="logo-mark">△</span> Tetrament</div>
+        <div class="hud-hint">Drag <kbd>LMB</kbd> a body · Orbit empty space · <kbd>Space</kbd> to spawn</div>
+        <div id="stats" class="stats"></div>
+        <a class="repo-link" href="https://github.com/zalo/Tetrament" target="_blank" rel="noopener">View source ↗</a>
+    </div>
 
     <script type="importmap">
     {

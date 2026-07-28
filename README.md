@@ -4,10 +4,7 @@ A comprehensive Three.js library for tetrahedralizing geometries and running rea
 
 ## ▶ [Live Demo](https://zalo.github.io/Tetrament/)
 
-An interactive hub with a scene switcher and SSGI global illumination:
-
-- **Softbody Playground** — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), fling them into baked mesh SDF colliders, and toggle the tet / strain / collision-sphere debug layers.
-- **Viscoelastic Clay** — a GPU particle clay that shares the world with the tetrahedral softbodies and pushes on them two-way.
+An interactive softbody playground with SSGI global illumination — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), fling them into baked mesh SDF colliders, and toggle the tet / strain / collision-sphere debug layers.
 
 Requires a WebGPU-enabled browser (Chrome/Edge 113+, Safari 18+).
 
@@ -19,7 +16,6 @@ Standalone examples: [Tetrahedralization](https://zalo.github.io/Tetrament/examp
 - **Real-time Softbody Physics**: GPU-accelerated FEM (Finite Element Method) physics simulation
 - **WebGPU Compute Shaders**: Massively parallel physics computation for high performance
 - **SDF Colliders**: Sphere, box, capsule, plane, and arbitrary-mesh SDF colliders (baked from any mesh via three-mesh-bvh into a sampled 3D texture)
-- **Viscoelastic Clay**: An experimental GPU particle solver (position-based distance constraints with a sticky activation shell — balls are pulled together within a radius slightly larger than their rest spacing) that couples two-way with the tetrahedral softbodies through the solver's own spatial grid
 - **Interactive Controls**: Mouse dragging and vertex anchoring
 - **Debug Visualization**: Strain visualization and tetrahedral mesh inspection
 - **Geometry Generators**: Pre-built tube, sphere, box, torus, cylinder, and cone generators — plus any mesh tetrahedralized on the fly
@@ -129,10 +125,9 @@ function animate() {
 - `Tetrahedralizer` class - Full control over tetrahedralization
 
 ### Simulation
-- `SoftbodySimulation` - Main physics simulation (`onSubStep(cb)` to couple external GPU systems in lockstep)
+- `SoftbodySimulation` - Main physics simulation
 - `SoftbodyGeometry` - Manages softbody rendering
 - `SoftbodyInstance` - Individual softbody instance
-- `ClaySimulation` - Viscoelastic particle solver; `coupleTo(simulation)` for two-way interaction with softbodies
 
 ### Colliders
 - `PlaneCollider` - Infinite plane
@@ -168,9 +163,7 @@ function animate() {
 
 ## Examples
 
-- `/index.html` - **Demo hub** with a scene switcher and SSGI post-processing:
-  - **Softbody Playground** — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), collide them with baked mesh SDF colliders, and inspect the tet/strain/collision-sphere debug layers
-  - **Viscoelastic Clay** — a particle clay solver sharing the world with tetrahedral softbodies, coupled two-way through the solver's spatial grid
+- `/index.html` - **Softbody playground** with SSGI post-processing — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), collide them with baked mesh SDF colliders, and inspect the tet/strain/collision-sphere debug layers
 - `/examples/tetrahedralization/` - Standalone tetrahedralization demo
 - `/examples/softbody-basic/` - Standalone softbody simulation
 
