@@ -46,20 +46,28 @@
     <div id="container"></div>
     <div id="info">
         <h1>Softbody Simulation</h1>
-        <p><strong>Controls:</strong> LMB: Rotate | RMB: Drag softbody | Scroll: Zoom | S: Strain | T: Tets</p>
+        <p><strong>Controls:</strong> LMB: Rotate | RMB: Drag softbody | Scroll: Zoom | S: Strain | T: Tets | C: Collision Spheres</p>
         <p><strong>Note:</strong> Requires WebGPU (Chrome 113+)</p>
     </div>
     <script type="importmap">
     {
         "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.webgpu.js",
-            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.webgpu.js",
-            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.tsl.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/",
+            "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
             "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js",
-            "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.19.2/dist/lil-gui.esm.min.js"
+            "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.20.0/dist/lil-gui.esm.min.js"
         }
     }
+    </script>
+    <script>
+        // Catch module load errors that would otherwise fail silently
+        window.addEventListener('error', (e) => {
+            document.getElementById('loading').innerHTML =
+                `<div style="color: #ff6b6b;">Failed to load: ${e.message}</div>
+                 <div style="font-size: 14px; margin-top: 10px; color: #aaa;">This demo requires a browser with WebGPU support (Chrome 113+, Edge, or Safari 18+).</div>`;
+        });
     </script>
     <script type="module">
         import * as THREE from 'three/webgpu';
@@ -80,6 +88,7 @@
             DragControl,
             TetVisualizer,
             DynamicTetVisualizer,
+            CollisionSphereVisualizer,
             StrainVisualizer
         } from '../../dist/tetrament.js';//'../../lib/index.js';
 
@@ -121,14 +130,16 @@
             renderer.setPixelRatio(window.devicePixelRatio);
             container.appendChild(renderer.domElement);
 
-            await renderer.init();
+            await Promise.race([
+                renderer.init(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error(
+                    'Renderer initialization timed out. Your browser may not fully support WebGPU compute shaders.'
+                )), 10000))
+            ]);
 
             // Check if we got WebGPU or fell back to WebGL2
             if (!renderer.backend.isWebGPUBackend) {
-                console.warn('WebGPU not available, falling back to WebGL2');
-                document.getElementById('loading').innerHTML =
-                    'WebGPU not available. This demo requires WebGPU (Chrome 113+ with WebGPU enabled).';
-                throw new Error('WebGPU required');
+                throw new Error('WebGPU not available. This demo requires WebGPU with compute shader support (Chrome 113+ or Safari 18+).');
             }
 
             setStatus('Setting up scene...');
@@ -274,6 +285,9 @@
                 color: new THREE.Color(0x00ff00),
                 scale: 0.85
             });
+
+            // Create collision sphere visualizer
+            const collisionSphereVisualizer = new CollisionSphereVisualizer(simulation);
 
             // Spawn function
             async function spawnShape() {
@@ -431,6 +445,13 @@
                     tetVisualizer.disable();
                 }
             });
+            debugFolder.add({ showCollisionSpheres: false }, 'showCollisionSpheres').name('Show Collision Spheres').onChange(async v => {
+                if (v) {
+                    await collisionSphereVisualizer.enable();
+                } else {
+                    collisionSphereVisualizer.disable();
+                }
+            });
             if (!isMobile) { debugFolder.open(); } else { debugFolder.close(); }
 
             // Hide loading screen
@@ -453,6 +474,9 @@
                 }
                 if (event.key === 't' || event.key === 'T') {
                     tetVisualizer.toggle();
+                }
+                if (event.key === 'c' || event.key === 'C') {
+                    collisionSphereVisualizer.toggle();
                 }
             });
 

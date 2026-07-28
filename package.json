@@ -53,8 +53,8 @@
   },
   "homepage": "https://github.com/yourusername/tetrament#readme",
   "peerDependencies": {
-    "three": "^0.182.0",
-    "three-mesh-bvh": ">=0.7.0"
+    "three": ">=0.185.0",
+    "three-mesh-bvh": ">=0.9.0"
   },
   "devDependencies": {
     "@tweakpane/plugin-essentials": "^0.2.1",

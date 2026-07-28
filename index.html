@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tetrament — WebGPU Softbody Physics</title>
+    <link rel="stylesheet" href="./examples/app/styles.css">
+</head>
+<body>
+    <!-- Loading / error overlay -->
+    <div id="overlay">
+        <div class="overlay-card">
+            <div class="logo">
+                <span class="logo-mark">△</span>
+                <span class="logo-text">Tetrament</span>
+            </div>
+            <div id="overlay-status" class="spinner-line">
+                <span class="spinner"></span>
+                <span id="overlay-status-text">Initializing WebGPU…</span>
+            </div>
+            <div id="overlay-error" class="hidden"></div>
+        </div>
+    </div>
+
+    <!-- 3D canvas host -->
+    <div id="viewport"></div>
+
+    <!-- Sidebar -->
+    <aside id="sidebar">
+        <header class="sidebar-head">
+            <div class="logo">
+                <span class="logo-mark">△</span>
+                <span class="logo-text">Tetrament</span>
+            </div>
+            <p class="tagline">Real-time softbody physics with WebGPU &amp; FEM</p>
+        </header>
+
+        <nav id="scene-nav" class="scene-nav"><!-- populated by app.js --></nav>
+
+        <section class="scene-info">
+            <h2 id="scene-title">—</h2>
+            <p id="scene-desc"></p>
+            <div id="scene-hint" class="hint"></div>
+        </section>
+
+        <footer class="sidebar-foot">
+            <div id="stats" class="stats"></div>
+            <a class="repo-link" href="https://github.com/zalo/Tetrament" target="_blank" rel="noopener">View source ↗</a>
+        </footer>
+    </aside>
+
+    <!-- Mobile sidebar toggle -->
+    <button id="menu-toggle" aria-label="Toggle menu">☰</button>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+            "three/webgpu": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.webgpu.js",
+            "three/tsl": "https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.tsl.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/",
+            "three-mesh-bvh": "https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.9.4/build/index.module.js",
+            "lil-gui": "https://cdn.jsdelivr.net/npm/lil-gui@0.20.0/dist/lil-gui.esm.min.js"
+        }
+    }
+    </script>
+
+    <script>
+        // Surface module / load failures that would otherwise fail silently.
+        window.addEventListener('error', (e) => {
+            if (e.message && /WebGPU|gpu/i.test(e.message)) return; // handled in app
+            const err = document.getElementById('overlay-error');
+            const status = document.getElementById('overlay-status');
+            if (err && status && e.filename && e.filename.includes('cdn.jsdelivr')) {
+                status.classList.add('hidden');
+                err.classList.remove('hidden');
+                err.innerHTML = `<strong>Failed to load a module.</strong><br>${e.message}<br>
+                    <span class="muted">Check your network connection and that the CDN is reachable.</span>`;
+            }
+        });
+    </script>
+    <script type="module" src="./examples/app/app.js"></script>
+</body>
+</html>

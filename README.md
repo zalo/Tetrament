@@ -11,10 +11,12 @@ A comprehensive Three.js library for tetrahedralizing geometries and running rea
 - **Tetrahedralization**: Convert any Three.js geometry into a tetrahedral mesh using Delaunay tetrahedralization (Bowyer-Watson algorithm)
 - **Real-time Softbody Physics**: GPU-accelerated FEM (Finite Element Method) physics simulation
 - **WebGPU Compute Shaders**: Massively parallel physics computation for high performance
-- **SDF Colliders**: Sphere, box, capsule, plane, and mesh colliders
+- **SDF Colliders**: Sphere, box, capsule, plane, and arbitrary-mesh SDF colliders (baked from any mesh via three-mesh-bvh into a sampled 3D texture)
+- **Viscoelastic Clay**: An experimental GPU particle solver (double-density relaxation) that couples two-way with the tetrahedral softbodies through the solver's own spatial grid
 - **Interactive Controls**: Mouse dragging and vertex anchoring
 - **Debug Visualization**: Strain visualization and tetrahedral mesh inspection
-- **Geometry Generators**: Pre-built tube, sphere, box, torus, cylinder, and cone generators
+- **Geometry Generators**: Pre-built tube, sphere, box, torus, cylinder, and cone generators — plus any mesh tetrahedralized on the fly
+- **SSGI**: Optional screen-space global illumination post-processing (three.js `SSGINode`)
 
 ## Installation
 
@@ -24,9 +26,9 @@ npm install tetrament three three-mesh-bvh
 
 ## Requirements
 
-- Three.js 0.182.0 or higher (with WebGPU support)
-- three-mesh-bvh 0.7.0 or higher
-- WebGPU-enabled browser (Chrome 113+, Edge 113+)
+- Three.js 0.185.0 or higher (with WebGPU support)
+- three-mesh-bvh 0.9.0 or higher
+- WebGPU-enabled browser (Chrome 113+, Edge 113+, Safari 18+)
 
 ## Quick Start
 
@@ -120,16 +122,18 @@ function animate() {
 - `Tetrahedralizer` class - Full control over tetrahedralization
 
 ### Simulation
-- `SoftbodySimulation` - Main physics simulation
+- `SoftbodySimulation` - Main physics simulation (`onSubStep(cb)` to couple external GPU systems in lockstep)
 - `SoftbodyGeometry` - Manages softbody rendering
 - `SoftbodyInstance` - Individual softbody instance
+- `ClaySimulation` - Viscoelastic particle solver; `coupleTo(simulation)` for two-way interaction with softbodies
 
 ### Colliders
 - `PlaneCollider` - Infinite plane
-- `SphereCollider` - Sphere (static)
-- `BoxCollider` - Axis-aligned box
-- `CapsuleCollider` - Capsule
-- `MeshCollider` - Complex mesh shapes (CPU-based)
+- `SphereCollider` / `DynamicSphereCollider` - Sphere
+- `BoxCollider` / `DynamicBoxCollider` - Axis-aligned box
+- `CapsuleCollider` / `VerticalCapsuleCollider` / `DynamicCapsuleCollider` - Capsule
+- `SDFCollider(mesh)` - Arbitrary mesh baked into a sampled SDF (GPU-compatible); `bakeSDF()` for the raw texture
+- `MeshCollider` - Complex mesh shapes (CPU-based, for readback workflows)
 
 ### Geometry Generators
 - `generateTube(segments, options)` - Tube/capsule shapes
@@ -157,8 +161,13 @@ function animate() {
 
 ## Examples
 
-- `/examples/tetrahedralization/` - Interactive tetrahedralization demo
-- `/examples/softbody-basic/` - Basic softbody simulation
+- `/index.html` - **Demo hub** with a scene switcher and SSGI post-processing:
+  - **Softbody Playground** — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), collide them with baked mesh SDF colliders, and inspect the tet/strain/collision-sphere debug layers
+  - **Viscoelastic Clay** — a particle clay solver sharing the world with tetrahedral softbodies, coupled two-way through the solver's spatial grid
+- `/examples/tetrahedralization/` - Standalone tetrahedralization demo
+- `/examples/softbody-basic/` - Standalone softbody simulation
+
+Serve the repo root (`npx serve .`) and open `/` in a WebGPU-enabled browser.
 
 ## Development
 
