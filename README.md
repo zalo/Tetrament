@@ -2,9 +2,16 @@
 
 A comprehensive Three.js library for tetrahedralizing geometries and running real-time softbody simulations using WebGPU compute shaders.
 
-### [Tetrahedralization Example](https://zalo.github.io/Tetrament/examples/tetrahedralization/)
+## ▶ [Live Demo](https://zalo.github.io/Tetrament/)
 
-### [Softbody Simulation Example](https://zalo.github.io/Tetrament/examples/softbody-basic/)
+An interactive hub with a scene switcher and SSGI global illumination:
+
+- **Softbody Playground** — spawn FEM bodies (including arbitrary meshes tetrahedralized on the fly), fling them into baked mesh SDF colliders, and toggle the tet / strain / collision-sphere debug layers.
+- **Viscoelastic Clay** — a GPU particle clay that shares the world with the tetrahedral softbodies and pushes on them two-way.
+
+Requires a WebGPU-enabled browser (Chrome/Edge 113+, Safari 18+).
+
+Standalone examples: [Tetrahedralization](https://zalo.github.io/Tetrament/examples/tetrahedralization/) · [Softbody](https://zalo.github.io/Tetrament/examples/softbody-basic/)
 
 ## Features
 
@@ -12,7 +19,7 @@ A comprehensive Three.js library for tetrahedralizing geometries and running rea
 - **Real-time Softbody Physics**: GPU-accelerated FEM (Finite Element Method) physics simulation
 - **WebGPU Compute Shaders**: Massively parallel physics computation for high performance
 - **SDF Colliders**: Sphere, box, capsule, plane, and arbitrary-mesh SDF colliders (baked from any mesh via three-mesh-bvh into a sampled 3D texture)
-- **Viscoelastic Clay**: An experimental GPU particle solver (double-density relaxation) that couples two-way with the tetrahedral softbodies through the solver's own spatial grid
+- **Viscoelastic Clay**: An experimental GPU particle solver (position-based distance constraints with a sticky activation shell — balls are pulled together within a radius slightly larger than their rest spacing) that couples two-way with the tetrahedral softbodies through the solver's own spatial grid
 - **Interactive Controls**: Mouse dragging and vertex anchoring
 - **Debug Visualization**: Strain visualization and tetrahedral mesh inspection
 - **Geometry Generators**: Pre-built tube, sphere, box, torus, cylinder, and cone generators — plus any mesh tetrahedralized on the fly
