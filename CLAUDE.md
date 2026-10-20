@@ -31,10 +31,12 @@ Tetrament is a Three.js library for real-time softbody physics using WebGPU comp
    - `Grid.js` - Spatial hashing grid for tet-tet collision detection
    - `shaderMath.js` - TSL math utilities (quaternions, rotation extraction)
 
-3. **Physics Loop** (GPU compute shaders in SoftbodySimulation):
-   - `solveElemPass` - Rotation extraction from covariance matrix, builds spatial grid
-   - `solveCollisions` - Tet-tet collision response using spatial grid
-   - `applyElemPass` - Vertex integration with Verlet, collider response with friction
+3. **Physics Loop** (GPU compute shaders in SoftbodySimulation), `config.iterations` Jacobi iterations per step:
+   - `solveClusters` - Lattice shape matching: one workgroup per cluster (`LatticeClusters.js`) reduces its covariance and writes a goal per vertex
+   - `solveElemPass` - Rotation extraction from covariance matrix, builds spatial grid (first iteration)
+   - `solveCollisions` - Tet-tet collision response using spatial grid (first iteration)
+   - `projectPass` - Vertex moves to the weighted average of its tet and cluster goals, Chebyshev-accelerated (intermediate iterations)
+   - `applyElemPass` - Same average, then vertex integration with Verlet, collider response with friction (last iteration)
 
 ### Key Patterns
 

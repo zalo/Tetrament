@@ -158,6 +158,17 @@ export function createSoftbodyScene() {
         sf.add(params, 'gravity', -40, 0, 0.1).name('Gravity').onChange((v) => { sim.config.gravity.y = v; sim.uniforms.gravity.value.y = v; });
         sf.add(params, 'friction', 0, 1, 0.01).name('Friction').onChange((v) => { sim.config.friction = v; sim.uniforms.friction.value = v; });
 
+        // Stiffness: Jacobi iterations (Chebyshev-accelerated) and lattice shape matching clusters
+        const st = gui.addFolder('Stiffness');
+        st.add(sim.config, 'iterations', 1, 16, 1).name('Iterations / step');
+        st.add(sim.config, 'chebyshev').name('Chebyshev');
+        st.add(sim.config, 'clusters').name('Shape matching clusters');
+        st.add(sim.config, 'clusterWeight', 0, 16, 0.1).name('Cluster weight');
+        st.add(sim.config, 'clusterSize', 2, 12, 0.5).name('Cluster size (rebakes)').onFinishChange(async () => {
+            await sim.bake();
+            await refreshViz();
+        });
+
         const spawn = gui.addFolder('Spawn');
         spawn.add(params, 'shape', Object.fromEntries(Object.entries(SHAPES).map(([k, v]) => [v.label, k]))).name('Shape');
         spawn.add(params, 'count', 1, 8, 1).name('Count');

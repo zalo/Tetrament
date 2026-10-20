@@ -117,6 +117,25 @@ function animate() {
 }
 ```
 
+### Stiffness
+
+Each physics step runs a few Jacobi iterations: every tet fits its rest shape to the current positions, and every vertex moves to the average of its goals. Two things make bodies stiffer than a single per-tet pass:
+
+- **Lattice shape matching clusters** (Rivers & James 2007, *FastLSM: Fast Lattice Shape Matching for Robust Real-Time Deformation*): each body's vertices are binned into overlapping blocks in rest space (two layers offset by half a block). One 64-thread workgroup per block reduces the covariance and extracts the block's best-fit rotation (Müller et al. 2016, *A Robust Method to Extract the Rotational Part of Deformations*). The block goals are averaged in with the tet goals, which gives bending stiffness that per-tet fits alone cannot carry across a long body.
+- **Chebyshev acceleration** (Wang 2015, *A Chebyshev Semi-Iterative Approach for Accelerating Projective and Position-based Dynamics*) of the Jacobi iterations, so stiffness travels through a body in fewer iterations.
+
+```javascript
+const simulation = new SoftbodySimulation(renderer, {
+    iterations: 4,       // Jacobi iterations per step
+    chebyshev: true,     // Chebyshev acceleration
+    clusters: true,      // lattice shape matching
+    clusterWeight: 4,    // cluster goal weight relative to the tet goals (0 = off)
+    clusterSize: 4       // cluster block edge in mean tet edge lengths (applied on bake)
+});
+```
+
+All except `clusterSize` can be changed on `simulation.config` at runtime. `{ iterations: 1, chebyshev: false, clusters: false }` reproduces the previous solver exactly.
+
 ## API Overview
 
 ### Tetrahedralization
