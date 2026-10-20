@@ -14,6 +14,18 @@ export interface SimulationConfig {
     gravity?: THREE.Vector3;
     damping?: number;
     rotationSteps?: number;
+    /** Jacobi iterations per physics step (default 4) */
+    iterations?: number;
+    /** Chebyshev acceleration of the Jacobi iterations (default true) */
+    chebyshev?: boolean;
+    /** Spectral radius estimate for Chebyshev; null derives it from `iterations` */
+    chebyshevRho?: number | null;
+    /** Lattice shape matching clusters (default true) */
+    clusters?: boolean;
+    /** Weight of a cluster goal relative to the tet goals (default 4) */
+    clusterWeight?: number;
+    /** Cluster block edge in mean tet edge lengths (default 4, applied on bake) */
+    clusterSize?: number;
 }
 
 export class SoftbodySimulation {
@@ -27,6 +39,7 @@ export class SoftbodySimulation {
     colliders: Function[];
     vertexCount: number;
     tetCount: number;
+    clusterCount: number;
     initialized: boolean;
 
     addVertex(objectId: number, x: number, y: number, z: number): any;
